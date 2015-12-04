@@ -27,9 +27,11 @@ public class MultiThreadedClass implements Runnable {
         while(! isStopped()){
             Socket clientSocket = null;
             try {
+                System.out.println("SOCKET CLOSED : " + serverSocket.isClosed());
                 clientSocket = this.serverSocket.accept();
             } catch (IOException e) {
             	System.err.println(e.getMessage());
+                System.out.println("SOCKET CLOSED : " + serverSocket.isClosed());
                 if(isStopped()) {
                     System.out.println("Server Stopped.") ;
                     break;
@@ -59,7 +61,7 @@ public class MultiThreadedClass implements Runnable {
     	initServerParam();
 		new Thread(server).start();
 		try {
-			Thread.sleep(20 * 1000);
+			Thread.sleep(1 * 1000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

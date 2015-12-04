@@ -20,14 +20,17 @@ public class MainTestClass {
 	
 	/** This class for test only! */
 	public static void main(String[] args){
-		MultiThreadedClass server = new MultiThreadedClass(8080);
-		server.startTheServer(server);
+		//MultiThreadedClass server = new MultiThreadedClass(8080);
+		//server.startTheServer(server);
 		m_Utils = new Utils();
 		
 		try {
-			i_ConfigFileParams = m_Utils.getFileParams(sf_ConfigFile);
+			i_ConfigFileParams = m_Utils.getConfigFileParams(sf_ConfigFile);
 			initParams();
-			printParams();
+	//		printParams(); // debug
+			// server parameters initialised
+			m_Utils.handleHttpRequest("http request goes here... ");
+			
 			
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
