@@ -6,10 +6,10 @@ import java.util.concurrent.Executors;
 
 public class MultiThreadedClass implements Runnable {
 
-    protected int          serverPort   = 8080;
-    protected ServerSocket serverSocket = null;
-    protected boolean      isStopped    = false;
-    protected Thread       runningThread= null;
+    protected int serverPort;
+    protected ServerSocket serverSocket;
+    protected boolean isStopped;
+    protected Thread runningThread;
     protected ExecutorService threadPool =
         Executors.newFixedThreadPool(10);
 
@@ -44,9 +44,19 @@ public class MultiThreadedClass implements Runnable {
         this.threadPool.shutdown();
         System.out.println("Server Stopped.") ;
     }
+    
+    private void initServerParam() {
+    	 serverPort = MainTestClass.m_Port;//8080;
+    	 serverSocket = null;
+    	 isStopped = false;
+    	 runningThread= null;
+    	 threadPool =
+    	        Executors.newFixedThreadPool(10);
+    }
 
     //I am starting my server here basically 
     public void startTheServer(MultiThreadedClass server) {
+    	initServerParam();
 		new Thread(server).start();
 		try {
 			Thread.sleep(20 * 1000);
@@ -54,7 +64,7 @@ public class MultiThreadedClass implements Runnable {
 			e.printStackTrace();
 		}
 		System.out.println("Stopping Server");
-		server.stop();
+		//server.stop();
     }
     
     private synchronized boolean isStopped() {

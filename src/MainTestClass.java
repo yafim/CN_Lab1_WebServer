@@ -12,7 +12,7 @@ public class MainTestClass {
 	private static HashMap<String, String> i_ConfigFileParams = null;
 	
 	/** AS IT WOULD BE IN HttpRequest.java file */
-	private static int m_Port;
+	public static int m_Port;
 	private static String m_Root;
 	private static String m_DefaultPage;
 	private static int m_MaxThreads; 
