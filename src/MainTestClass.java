@@ -12,7 +12,7 @@ public class MainTestClass {
 	private static HashMap<String, String> i_ConfigFileParams = null;
 	
 	/** AS IT WOULD BE IN HttpRequest.java file */
-	public static int m_Port;
+	//public static int m_Port;
 	private static String m_Root;
 	private static String m_DefaultPage;
 	private static int m_MaxThreads; 
@@ -20,36 +20,36 @@ public class MainTestClass {
 	
 	/** This class for test only! */
 	public static void main(String[] args){
-		//MultiThreadedClass server = new MultiThreadedClass(8080);
-		//server.startTheServer(server);
+		MultiThreadedClass server = new MultiThreadedClass(8080);
+		server.startTheServer();
 		m_Utils = new Utils();
-		
-		try {
-			i_ConfigFileParams = m_Utils.getConfigFileParams(sf_ConfigFile);
-			initParams();
-	//		printParams(); // debug
-			// server parameters initialised
-			m_Utils.handleHttpRequest("http request goes here... ");
-			
-			
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-	
-	private static void initParams(){
-		m_Port = Integer.parseInt(i_ConfigFileParams.get("port"));
-		m_Root = i_ConfigFileParams.get("root");
-		m_DefaultPage = i_ConfigFileParams.get("defaultPage");
-		m_MaxThreads = Integer.parseInt(i_ConfigFileParams.get("maxThreads"));
-	}
-	
-	private static void printParams() {
-		System.out.println("port: " + m_Port);
-		System.out.println("root: " + m_Root);
-		System.out.println("defaultPage: " + m_DefaultPage);
-		System.out.println("maxThreads: " + m_MaxThreads);
-	}
+	}		
+//		try {
+//			i_ConfigFileParams = m_Utils.getConfigFileParams(sf_ConfigFile);
+//			initParams();
+//	//		printParams(); // debug
+//			// server parameters initialised
+//			m_Utils.handleHttpRequest("http request goes here... ");
+//			
+//			
+//		} catch (UnsupportedEncodingException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//
+//	}
+//	
+//	private static void initParams(){
+//		m_Port = Integer.parseInt(i_ConfigFileParams.get("port"));
+//		m_Root = i_ConfigFileParams.get("root");
+//		m_DefaultPage = i_ConfigFileParams.get("defaultPage");
+//		m_MaxThreads = Integer.parseInt(i_ConfigFileParams.get("maxThreads"));
+//	}
+//	
+//	private static void printParams() {
+//		System.out.println("port: " + m_Port);
+//		System.out.println("root: " + m_Root);
+//		System.out.println("defaultPage: " + m_DefaultPage);
+//		System.out.println("maxThreads: " + m_MaxThreads);
+//	}
 }
