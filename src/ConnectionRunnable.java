@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 
 
@@ -16,10 +17,10 @@ public class ConnectionRunnable implements Runnable{
 	private boolean m_isRun = true;
 	private MyThread myThread;
 	private Thread thread;
-	private String m_HTTPRequest;
+	private String m_HTTPRequest = "";
 	//!!!!!REMEBER TO DELETE THIS SOCKET AND READER ITS JUST FOR DEBUGING!!!!!!!
-	private BufferedReader in;
-	private Socket m_socket;
+	private BufferedReader m_In;
+//	private Socket m_socket;
 	//!!!!!!! debug!!!!!!
 	public Utils m_Utils = new Utils();
 	//private Object m_lock = new Object();
@@ -63,9 +64,9 @@ public class ConnectionRunnable implements Runnable{
 			InputStream input  = m_clientSocket.getInputStream();
 			OutputStream output = m_clientSocket.getOutputStream();
 			//!!!!FOR DEBUGGIN !!!!!!
-			m_socket = new Socket(new String("localhost"), 8080);
+//			m_socket = new Socket(new String("localhost"), 8080);
 			//UNTIL HERE
-			 in = new BufferedReader(new InputStreamReader(
+			 m_In = new BufferedReader(new InputStreamReader(
 		                m_clientSocket.getInputStream()));
 			//System.out.println("Mile stone 4");
 		
@@ -77,10 +78,24 @@ public class ConnectionRunnable implements Runnable{
 			}
 			//!!!!FOR DEBUGGIN !!!!!!
 			   try {
-				   System.out.println("The line ");
-					while((m_HTTPRequest = in.readLine()) != null) {
-						m_Utils.handleHttpRequest(m_HTTPRequest);
+//				   System.out.println("The line ");
+				   int counter = 0;
+				   String lineToRead = "";
+				   
+					while((lineToRead = m_In.readLine()) != null) {
+//						m_Utils.handleHttpRequest(lineToRead);
+//						System.out.println(counter);
+//						System.out.println(lineToRead);
+						buildHTTPRequest(lineToRead);
+//						m_HTTPRequest += lineToRead;
+//						counter++;
+//						System.out.println(m_HTTPRequest);
+						
 					   }
+					
+//					m_Utils.handleHttpRequest(m_HTTPRequest);
+			//		System.out.println(lineToRead);
+
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -104,6 +119,17 @@ public class ConnectionRunnable implements Runnable{
 		// finish handle client
 		m_clientSocket = null;
 		myThread.onClientCommComplete();
+	}
+	
+	private boolean m_IsDone = false;
+	private void buildHTTPRequest(String i_String) throws UnsupportedEncodingException{
+		m_HTTPRequest += i_String;
+//		System.out.println(i_String.equals(""));
+		if (i_String.equals("")){
+//			System.out.println(m_HTTPRequest);
+			m_Utils.handleHttpRequest(m_HTTPRequest);
+		}
+		m_HTTPRequest += System.lineSeparator();
 	}
 
 	public boolean isBusy() {

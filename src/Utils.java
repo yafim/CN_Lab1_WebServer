@@ -92,10 +92,13 @@ public class Utils {
 	 */
 	public void handleHttpRequest(String i_HTTPRequest) throws UnsupportedEncodingException{
 		//TODO: DELETE!
-		File testFileRequest = new File("C:\\serverroot\\httpRequest.txt");
-		m_HTTPRequest = byteArrayToString(readFile(testFileRequest));
+//		File testFileRequest = new File("C:\\serverroot\\httpRequest.txt");
+//		m_HTTPRequest = byteArrayToString(readFile(testFileRequest));
+		m_HTTPRequest = i_HTTPRequest;
 		//	System.out.println(sTestFileRequest); // debug
-
+		
+		System.out.println(m_HTTPRequest);
+		
 		/** ACTUAL CODE TO KEEP */
 		splitHttpRequest(m_HTTPRequest);
 		parseHTTPAdditionalInformation();
