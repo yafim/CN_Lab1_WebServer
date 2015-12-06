@@ -97,14 +97,10 @@ public class ConnectionRunnable implements Runnable{
 			//		System.out.println(lineToRead);
 
 				} catch (IOException e) {
+					//TODO: figure out why we have the following comment line with to do??!
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			 //UNTIL HERE	
-//			output.write(("HTTP/1.1 200 OK\n\nWorkerRunnable: " +
-//					//this.serverText + " - " +
-//					time +
-//					"").getBytes());
 			output.close();
 			input.close();
 //			System.out.println("Request processed: " + time);
@@ -116,7 +112,7 @@ public class ConnectionRunnable implements Runnable{
 			e.printStackTrace();
 		}
 				
-		// finish handle client
+		//Finish handling client
 		m_clientSocket = null;
 		myThread.onClientCommComplete();
 	}
@@ -136,14 +132,23 @@ public class ConnectionRunnable implements Runnable{
 		return m_clientSocket != null;
 	}
 
+	/**
+	 * Notifying the sleeping thread that it has a client request to handle 
+	 * @param clientSocket
+	 */
 	public void communicate(Socket clientSocket) {		
 		this.m_clientSocket = clientSocket;
 		synchronized (thread) {
-		//	System.out.println("Thread pool: notify thread " + myNum);
+		//TODO: Delete this only before submitting.
+		//System.out.println("Thread pool: notify thread " + myNum);
 			thread.notify();
 		}
 	}
 
+	/**
+	 * Stops the client request upon calling by changing the running
+	 * mode of the variable m_isRun to false 
+	 */
 	public void stop() {
 		this.m_isRun = false;
 		synchronized (thread) {
