@@ -18,6 +18,7 @@ public class ConnectionRunnable implements Runnable{
 	//private Object m_lock = new Object();
 	//private boolean isBusy = false;
 //	protected String serverText   = null;
+	//Hopefully this push will work
 
 	public ConnectionRunnable(MyThread myThread) {
 		this.myThread = myThread;
