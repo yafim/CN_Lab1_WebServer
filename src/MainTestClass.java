@@ -22,16 +22,15 @@ public class MainTestClass {
 	public static void main(String[] args){
 		MultiThreadedClass server = new MultiThreadedClass(8080);
 		server.startTheServer();
-		m_Utils = new Utils();
+	//	m_Utils = new Utils();
 	}		
+		
 //		try {
 //			i_ConfigFileParams = m_Utils.getConfigFileParams(sf_ConfigFile);
 //			initParams();
-//	//		printParams(); // debug
+//			//printParams(); // debug
 //			// server parameters initialised
 //			m_Utils.handleHttpRequest("http request goes here... ");
-//			
-//			
 //		} catch (UnsupportedEncodingException e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
@@ -52,4 +51,5 @@ public class MainTestClass {
 //		System.out.println("defaultPage: " + m_DefaultPage);
 //		System.out.println("maxThreads: " + m_MaxThreads);
 //	}
+	
 }

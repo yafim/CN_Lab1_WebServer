@@ -11,6 +11,8 @@ public class Client {
 	private Socket socket;
 	private PrintWriter out;
 	private BufferedReader in;
+	private String m_HTTPRequest;
+	
 	
 	public Client(int port) {
 		this.port = port;
@@ -22,10 +24,10 @@ public class Client {
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		for(int i = 0; i < 15; i++) {
-			Client client = new Client(8080);
-			client.listenSocket();
-		}
+//		for(int i = 0; i < 15; i++) {
+//			Client client = new Client(8080);
+//			client.listenSocket();
+//	}
 	}
 	
 
@@ -44,6 +46,16 @@ public class Client {
 	     System.out.println("No I/O");
 	     System.exit(1);
 	   }
+	   
+//	   try {
+//		while((m_HTTPRequest = in.readLine()) != null) {
+//			System.out.println("I am Inside while");
+//			   System.out.println(m_HTTPRequest);
+//		   }
+//	} catch (IOException e) {
+//		// TODO Auto-generated catch block
+//		e.printStackTrace();
+//	}
 	}
 
 }

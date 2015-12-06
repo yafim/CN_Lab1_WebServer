@@ -9,31 +9,38 @@ public enum SupportedFiles {
 	html{
 		@Override	
 		public String getContentType(){return "txt/html";}
-		},
+	},
 	//TODO: Bonus here... maybe js and txt files?
-		txt{
-			@Override
-			public String getContentType(){return "txt/txt";}
-		},
-	
+	txt{
+		@Override
+		public String getContentType(){return "txt/txt";}
+	},
+
 	/** Image files supported */
 	bmp{
 		@Override	
 		public String getContentType(){return "image/bmp";}
-		},
+	},
 	gif{
 		@Override	
 		public String getContentType(){return "image/gif";}
-		},
+	},
 	png{
 		@Override	
 		public String getContentType(){return "image/png";}
-		},
+	},
 	jpg{
 		@Override	
 		public String getContentType(){return "image/jpg";}
-		};
-		
+	},
+
+	/** Favicon*/
+	ico{
+		@Override
+		public String getContentType(){return "icon";}
+	};
+
+
 
 	public abstract String getContentType();
 
