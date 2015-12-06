@@ -18,42 +18,43 @@ public class Utils {
 	private final String ERR_BAD_REQUEST = "400 Bad Request";
 	private final String ERR_INTERNAL_SRV_ERR = "500 Internal Server Error";
 	private final String OK_MSG = "200 OK";
-	
+
 	/** HTTP request variables */
+	private String m_HTTPRequest = null;
 	private String[] m_SplitHTTPRequest = null;	
 	private HashMap<String, String> m_HTTPAdditionalInformation = null;
 	private HashMap<String, String> m_RequestedVariables = null;
-	
+
 	// http request variables 
 	private File m_RequestedFileFullPath;
 	private HTTPMethod m_HTTPMethod;
 	private String m_HttpVersion;
-	
+
 	/** Response variables */
 	// Requested file
 	private String m_RequestedFileContent;
 	private HashMap<String, String> m_HTTPResponse = null;
 	private String m_FileExtension;
-	
-	
+
+
 	/** Read file variables */	
 	private FileInputStream m_FileInputStream = null;
 	private HashMap<String, String> m_FileParmas = null;
-	
+
 	/** Root of the server */
 	private final String m_Root = "c://serverroot//";
 	private final String mf_DefaultPage = "index.html";
 
-	
+
 	/** Singleton variables */
 	private static final Object sf_LockInstance = new Object();
 	private static Utils s_Instance = null;
-	
+
 	/**
 	 * Empty constructor
 	 */
 	public Utils(){}
-	
+
 	/**
 	 * Singleton implementation
 	 * @return
@@ -68,7 +69,7 @@ public class Utils {
 		}
 		return s_Instance;
 	}
-	
+
 	/**
 	 * Get Config.ini file parameters 
 	 * @param i_File
@@ -82,7 +83,7 @@ public class Utils {
 
 		return m_FileParmas;
 	}
-	
+
 	/**
 	 * Handle http request.
 	 * TODO: Send real http request.
@@ -92,23 +93,28 @@ public class Utils {
 	public void handleHttpRequest(String i_HTTPRequest) throws UnsupportedEncodingException{
 		//TODO: DELETE!
 		File testFileRequest = new File("C:\\serverroot\\httpRequest.txt");
-		String sTestFileRequest = byteArrayToString(readFile(testFileRequest));
-	//	System.out.println(sTestFileRequest); // debug
-		
+		m_HTTPRequest = byteArrayToString(readFile(testFileRequest));
+		//	System.out.println(sTestFileRequest); // debug
+
 		/** ACTUAL CODE TO KEEP */
-		splitHttpRequest(sTestFileRequest);
+		splitHttpRequest(m_HTTPRequest);
 		parseHTTPAdditionalInformation();
-		
+
 		// Print the request
 		System.out.println(m_SplitHTTPRequest[0]); 
-		
+
 		initHttpRequestParams();
-//		printHTTPRequestParams(); // debug
-		tryParseVariables();
-/*		if (m_RequestedVariables != null){ //debug!
-			printDictionary(m_RequestedVariables);
-		}*/
-//		printDictionary(m_HTTPAdditionalInformation); // debug
+		//		printHTTPRequestParams(); // debug
+		try{
+			tryParseVariables();
+		} catch (NoVariablesException nve){
+			// No variables to parse...
+			//System.out.println(nve.getMessage());
+		}
+		//		if (m_RequestedVariables != null){ //debug!
+		//			printDictionary(m_RequestedVariables);
+		//		}
+		//		printDictionary(m_HTTPAdditionalInformation); // debug
 		buildResponseMessage();
 
 
@@ -123,7 +129,7 @@ public class Utils {
 		m_SplitHTTPRequest = i_HTTPRequest.split(System.lineSeparator(), 2);
 		verifyGivenPath(m_SplitHTTPRequest[0]);
 	}
-	
+
 	/**
 	 * Checks if the URL that was given is OK and safe to open.
 	 */
@@ -134,21 +140,23 @@ public class Utils {
 	/**
 	 * Try parse variables. If exist parse and return true, Otherwise return false.
 	 * @return
+	 * @throws NoVariablesException 
 	 */
-	private boolean tryParseVariables(){
+	private void tryParseVariables() throws NoVariablesException{
+
 		String fileName = m_RequestedFileFullPath.getName();
+
 		String[] variables = fileName.split("\\?");
-		
+
 		if (variables.length == 1){
-			return false;
+			throw new NoVariablesException("No variables to parse");
 		}
 		else {
 			updateRequestedFileFullPath();
 			getVariables(variables[1]);
-			return true;
 		}
 	}
-	
+
 	/**
 	 * There must be variables after the file name, so delete it.
 	 * @param i_FilePath
@@ -157,7 +165,7 @@ public class Utils {
 		String sFullPath = m_RequestedFileFullPath.toString().split("\\?")[0];
 		m_RequestedFileFullPath = new File(sFullPath);
 	}
-	
+
 	/**
 	 * Get variables from path as dictionary.
 	 * @param i_Variables
@@ -170,8 +178,8 @@ public class Utils {
 			m_RequestedVariables = stringToDictionary(str, "=", m_RequestedVariables);
 		}
 	}
-	
-	
+
+
 	/**
 	 * Initialise HTTP request variables
 	 */
@@ -179,18 +187,30 @@ public class Utils {
 		// TODO: Maybe exception?...
 		String[] sString = m_SplitHTTPRequest[0].split(" ");
 		try{
+			// get the method
 			m_HTTPMethod = HTTPMethod.valueOf(sString[0]);
+
+			// get the file
+			boolean defaultPageGiven = (sString[1].equals("/"));
+
+			m_RequestedFileFullPath = (defaultPageGiven) ? new File(m_Root + mf_DefaultPage)
+			: new File(m_Root + sString[1]);
+
+			// get http version
+			m_HttpVersion = sString[2];
+
 		} catch (IllegalArgumentException e){
 			m_HTTPMethod = HTTPMethod.UNSUPPORTED;
+			System.out.println(ERR_NOT_IMPEMENTED);
+		} catch(ArrayIndexOutOfBoundsException oobe){
+			System.err.println(ERR_BAD_REQUEST);
+			//TODO: Handle bad request
+		} catch(NullPointerException npe){
+			System.out.println(ERR_INTERNAL_SRV_ERR);
 		}
-		boolean defaultPageGiven = !(sString[1].length() > 2);
-		
-		m_RequestedFileFullPath = (defaultPageGiven) ? new File(m_Root + mf_DefaultPage)
-		: new File(m_Root + sString[1]);
-		
-		m_HttpVersion = sString[2];
+
 	}
-	
+
 
 	/**
 	 * Split string to dictionary
@@ -199,28 +219,28 @@ public class Utils {
 	private HashMap<String, String> stringToDictionary(String i_String, String i_Separator, HashMap<String, String> i_Dictionary){
 		boolean isNull = false;
 		boolean requestFlag = false;
-		
+
 		for (String s : i_String.split(System.lineSeparator())) {
 			isNull = s == System.lineSeparator() || s.equals("") || s.equals(" ") || s.equals(null);
-			
+
 			/** Check for body */
 			if (requestFlag){
 				i_Dictionary.put("RequestBody", s);
 				break;
 			}
-			
+
 			if (!isNull){
 				i_Dictionary.put(s.split(i_Separator)[0], s.split(i_Separator)[1]);
 			} 
 			else {
 				requestFlag = true;
 			}
-			
+
 		}
-		
+
 		return i_Dictionary;
 	}
-	
+
 	/**
 	 * Byte[] to String
 	 * @param i_Bytes file content in bytes
@@ -240,7 +260,7 @@ public class Utils {
 		try{
 			m_FileInputStream = new FileInputStream(i_File);
 			bFile = new byte[(int)i_File.length()];
-			
+
 			while(m_FileInputStream.available() != 0){
 				m_FileInputStream.read(bFile, 0, bFile.length);
 			}
@@ -262,30 +282,89 @@ public class Utils {
 		}
 		return bFile;
 	}
-	
+
 	/**
 	 * Start building the response based on the method.
 	 */
 	private void buildResponseMessage(){
+
 		switch(m_HTTPMethod){
 		case GET :
-			handleFileRequest();
-//			System.out.println("GET");
+			buildResponseMessage(true, true, false);
 			break;
 		case POST :
-			
-//			System.out.println("POST");
+			buildResponseMessage(true, true, false);
 			break;
 		case HTTP :
-//			System.out.println("HTTP");
+			//			System.out.println("HTTP");
 			break;
 		case HEAD :
-//			System.out.println("HEAD");
+			buildResponseMessage(false, true, false);
+			//			System.out.println("HEAD");
+			//			handleFileRequest();
+			//			createResponseHeader();
+			//			System.out.println(m_HTTPResponse.get("HEADER"));
 			break;
-		default:
-			System.err.println(ERR_NOT_IMPEMENTED);
+		case TRACE:
+			buildResponseMessage(false, false, true);
+			break;
+			// TODO: Need unsupported method?
+		case UNSUPPORTED:
+			break;
 		}
-		
+
+
+	}
+
+	/**
+	 * Build response message.
+	 * 1. Check the requested file and read its content to byte[] 
+	 *    m_RequestedFileContent.
+	 * 2. Create http response header.
+	 * 3. If needed include file content to header.
+	 * @param i_PrintFileContent
+	 */
+	private void buildResponseMessage(boolean i_PrintFileContent, boolean i_IncludeConetnt, boolean i_IncludeHTTPRequest){
+		try{
+			handleFileRequest();
+			createResponseHeader();
+			if (i_IncludeConetnt){
+				buildResponseContent();
+			}
+			
+			if (i_IncludeHTTPRequest){
+				includeHTTPRequestInResponse();
+			}
+			// TODO: Not here...
+			System.out.println(m_HTTPResponse.get("HEADER"));
+		//	System.out.println(m_HTTPResponse.get("HTTPRequest"));
+			
+			if (i_PrintFileContent){
+				System.out.println(m_HTTPResponse.get("Content"));
+			}
+			
+			// TODO: END... // 
+			
+		} catch (UnsupportedEncodingException e) {
+			// TODO: Handle error... (bad enum was given...)
+		} catch(FileNotFoundException fnfe){
+			System.out.println(fnfe.getMessage());
+		} catch (NullPointerException npe){
+			// No content to get... Not supposed to get here
+			System.out.println(ERR_INTERNAL_SRV_ERR);
+		} catch (ArrayIndexOutOfBoundsException aofe){
+			// TODO: IT COULD BE A FOLDER...
+			System.out.println(ERR_FILE_NOT_FOUND);
+		}
+	}
+	
+	/**
+	 * Usually for TRACE method...
+	 */
+	private void includeHTTPRequestInResponse(){
+		String newHeader = m_HTTPResponse.get("HEADER") + 
+				System.lineSeparator() + m_HTTPRequest;
+		m_HTTPResponse.put("HEADER" , newHeader);
 	}
 	
 	/**
@@ -293,30 +372,27 @@ public class Utils {
 	 * Otherwise return 404 message
 	 * TODO: 404 Exception?
 	 * @throws UnsupportedEncodingException 
+	 * @throws FileNotFoundException 
 	 */
-	private void handleFileRequest(){
-		m_FileExtension = m_RequestedFileFullPath.getName().split("\\.")[1];
+	private void handleFileRequest() throws ArrayIndexOutOfBoundsException, UnsupportedEncodingException, FileNotFoundException{
 		
+		//TODO: Maybe folder options...
+		m_FileExtension = m_RequestedFileFullPath.getName().split("\\.")[1];
+
 		boolean isSupported = isSupportedFormat(m_FileExtension);
 		boolean isImage = false;
-		
+
 		// Check the file
 		if (isSupported){
 			isImage = isImage(m_FileExtension);
-			try {
-				if (isExists(m_RequestedFileFullPath)){
-					// open file...
-					//TODO: maybe response byte[] and not stringed content 
-					m_RequestedFileContent = byteArrayToString(readFile(m_RequestedFileFullPath));
-					createHTTPResponse();
-				}
-				else {
-					throw new FileNotFoundException(ERR_FILE_NOT_FOUND);
-				}
-			} catch (UnsupportedEncodingException e) {
-				// TODO: Handle error...
-			} catch(FileNotFoundException fnfe){
-				System.out.println(fnfe.getMessage());
+			if (isExists(m_RequestedFileFullPath)){
+				// open file...
+				//TODO: maybe response byte[] and not stringed content 
+				m_RequestedFileContent = byteArrayToString(readFile(m_RequestedFileFullPath));
+
+			}
+			else {
+				throw new FileNotFoundException(ERR_FILE_NOT_FOUND);
 			}
 		}
 	}
@@ -335,10 +411,10 @@ public class Utils {
 			System.err.println(i_FileExtension + " Not supported file");
 			isSupported = false;
 		}
-		
+
 		return isSupported;
 	}
-	
+
 	/**
 	 * Return true if file is image, Otherwise false.
 	 * @param i_FileExtension file to check
@@ -353,10 +429,10 @@ public class Utils {
 		catch (IllegalArgumentException iae){
 			isImage = false;
 		}
-		
+
 		return isImage;
 	}
-	
+
 	/**
 	 * True if file exists
 	 * @param i_FileFullPath file to check
@@ -365,41 +441,35 @@ public class Utils {
 	private boolean isExists(File i_FileFullPath){
 		return i_FileFullPath.exists();
 	}
-	
+
 	/**
 	 * Get all the additional information in dictionary
 	 */
 	private void parseHTTPAdditionalInformation(){
 		m_HTTPAdditionalInformation = stringToDictionary(m_SplitHTTPRequest[1], ":", new HashMap<String, String>());
 	}
-	
+
 	/**
-	 * Create HTTP response.
+	 * Create HTTP response header.
+	 * 1. Set content-type
+	 * 2. Set content-length
 	 */
-	private void createHTTPResponse(){
+	private void createResponseHeader(){
 		m_HTTPResponse = new HashMap<String, String>();
-		
+
 		String contentType = getContentType();
 		String contentLength = getContentLength();
 
-		
 		buildResponseHeader(contentType, contentLength);
-		
-		buildResponseContent();
-		
-		// print header
-		System.out.println(m_HTTPResponse.get("HEADER"));
-		
-//		System.out.println(m_HTTPResponse.get("Content"));
 	}
-	
+
 	/**
 	 * Attach requested content to the http response
 	 */
 	private void buildResponseContent(){
 		m_HTTPResponse.put("Content", m_RequestedFileContent);
 	}
-	
+
 	/**
 	 * Build response header
 	 */
@@ -411,21 +481,23 @@ public class Utils {
 				i_ContentType,
 				i_ContentLength
 				);
-		
+
 		m_HTTPResponse.put("HEADER", sHeader);
-		
+
 	}
-	
+
 	/**
 	 * Get content type
 	 * @return content type
 	 */
 	private String getContentType(){
-		SupportedFiles fileExtension = SupportedFiles.valueOf(m_FileExtension);
 		String contentType = null;
-		switch(fileExtension ){
+		try{
+			SupportedFiles fileExtension = SupportedFiles.valueOf(m_FileExtension);
+			switch(fileExtension ){
 			case html:
-				contentType = SupportedFiles.html.getContentType();
+				contentType = (HTTPMethod.TRACE == m_HTTPMethod) ? "message/http" 
+						: SupportedFiles.html.getContentType();
 				break;
 			case bmp:
 				contentType = SupportedFiles.bmp.getContentType();
@@ -439,11 +511,22 @@ public class Utils {
 			case png:
 				contentType = SupportedFiles.png.getContentType();
 				break;
+			case ico:
+				contentType = SupportedFiles.ico.getContentType();
+				break;
+
+				// bonus
+			case txt:
+				contentType = SupportedFiles.txt.getContentType();
+				break;
+			}
+		} catch (IllegalArgumentException iae){
+			contentType = "application/octet-stream";
 		}
-		
+
 		return contentType;
 	}
-	
+
 	/**
 	 * Get content length as string
 	 * @return content length
@@ -452,7 +535,7 @@ public class Utils {
 		int contentLength = m_RequestedFileContent.length();
 		return contentLength + "";
 	}
-	
+
 	/*************************** ---  DELETE  ---**********************************/
 	/**
 	 * Print dictionary<String, String> - DEBUG ONLY! 
@@ -461,13 +544,13 @@ public class Utils {
 	 */
 	public static void printDictionary(HashMap<String, String> i_Dictionary){
 		for (Map.Entry<String,String> entry : i_Dictionary.entrySet()) {
-			  String key = entry.getKey();
-			  String value = entry.getValue();
-			  
-			  System.out.println("KEY : " + key + " - VALUE : " + value);
+			String key = entry.getKey();
+			String value = entry.getValue();
+
+			System.out.println("KEY : " + key + " - VALUE : " + value);
 		}
 	}
-	
+
 	/**
 	 * Debug also...
 	 */

@@ -30,8 +30,6 @@ public class MainTestClass {
 	//		printParams(); // debug
 			// server parameters initialised
 			m_Utils.handleHttpRequest("http request goes here... ");
-			
-			
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

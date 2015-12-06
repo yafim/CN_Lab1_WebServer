@@ -9,5 +9,5 @@ public enum HTTPMethod {
 	HTTP,
 	HEAD,
 	TRACE,
-	UNSUPPORTED
+	UNSUPPORTED;
 }
