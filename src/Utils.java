@@ -42,7 +42,8 @@ public class Utils {
 	private HashMap<String, String> m_FileParmas = null;
 
 	/** Root of the server */
-	private final String m_Root = "c://serverroot//";
+//	private final String m_Root = "c://serverroot//"; // real 
+	private final String m_Root = "http://localhost" + "c://serverroot//"; // debug
 	private final String mf_DefaultPage = "index.html";
 
 
