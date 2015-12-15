@@ -10,7 +10,7 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ConnectionRunnable implements Runnable{
+public class CopyOfConnectionRunnable implements Runnable{
 	private Socket m_clientSocket = null;
 	private boolean m_isRun = true;
 	private MyThread myThread;
@@ -19,14 +19,14 @@ public class ConnectionRunnable implements Runnable{
 	private boolean m_IsHTTPRequestReady = false;
 	private String m_Root;
 	private String m_DefaultPage;
-
+	
 	//!!!!!REMEBER TO DELETE THIS SOCKET AND READER ITS JUST FOR DEBUGING!!!!!!!
 
 	//	private Socket m_socket;
 	//!!!!!!! debug!!!!!!
 	public HTTPRequest httpRequest;
 
-	public ConnectionRunnable(MyThread myThread, String i_Root, String i_DeafultPage) {
+	public CopyOfConnectionRunnable(MyThread myThread, String i_Root, String i_DeafultPage) {
 		this.myThread = myThread;
 		this.m_Root = i_Root;
 		this.m_DefaultPage = i_DeafultPage;
@@ -55,54 +55,57 @@ public class ConnectionRunnable implements Runnable{
 	OutputStream output;
 	private void runTaskForClient() {		
 		try {
+
 			httpRequest = new HTTPRequest(m_Root, m_DefaultPage);
+
 			input  = m_clientSocket.getInputStream();
 			output = m_clientSocket.getOutputStream();
 
+
 			BufferedReader m_In = new BufferedReader (new InputStreamReader(input));
 			DataOutputStream outToClient = new DataOutputStream (output);
-
+			
 
 			//TODO: Yafim decide if you want to delete all this or not
 			String lineToRead = "";
 			String hTTPRequest = "";
 
-			//			int i;
+//			int i;
 			StringBuilder response= new StringBuilder();
 			String s = "";
 			boolean f = true;
 			int c;
-
+//			while((lineToRead = m_In.readLine()) != null) {
 			while (true){
 				while ((c = m_In.read()) != -1 && !m_IsHTTPRequestReady) {
-					s += (char)c;
-					if ((char) c == '\r'){
-						char _c = (char)m_In.read();
-						if (_c == '\n'){
-							s += _c;
-							hTTPRequest = buildHTTPRequest(hTTPRequest, s);
-							s = "";
-							break;
-						}
-					}
+				    s += (char)c;
+				    if ((char) c == '\r'){
+				    	char _c = (char)m_In.read();
+				    	if (_c == '\n'){
+				    		s += _c;
+				    		hTTPRequest = buildHTTPRequest(hTTPRequest, s);
+				    		s = "";
+				    		break;
+				    	}
+				    }
 				}
+//				f = false;
+//				if (m_IsHTTPRequestReady)
+//					System.out.println(hTTPRequest);
+//				System.out.println("lol");
+				
 
+//				hTTPRequest = buildHTTPRequest(hTTPRequest, lineToRead);
 				if (m_IsHTTPRequestReady){
 					System.out.println("============= START =============");
 					HashMap<String, Object> hm;
 
 					hm = httpRequest.handleHttpRequest(hTTPRequest);
 
-					if (httpRequest.getHTTPMethod() == HTTPMethod.POST){
-						httpRequest.handlePostVariables(m_In);
-//						hm = httpRequest.updateParams();
-					}
-
 					// TODO: Clean and delete some stuff here.
 					String head = (String)hm.get("HEADER");
 					byte[] html = (byte[]) hm.get("Content");
-					
-					
+
 					outToClient.writeBytes(head);
 
 
@@ -115,22 +118,35 @@ public class ConnectionRunnable implements Runnable{
 							outToClient.writeBytes(key);
 							outToClient.write(value);
 						}
+						
 					} 
-
+					
 					System.out.println(head);
 					if (html != null){
 						outToClient.write(html);
 						System.out.println(html);
 					}
+					
+					if (httpRequest.getHTTPMethod() == HTTPMethod.POST){
+//						byte[] b = new byte[20];
+//						int s = inToServer.read(b);
+//						System.err.println(m_In.read());
+//						DataInputStream inToServer = new DataInputStream(input);
+						httpRequest.handlePostVariables(m_In);
+						
+					}
+					else {
+						hTTPRequest = "";
+						httpRequest.clear();
+						m_IsHTTPRequestReady = false;
+//						hm = null;
+						System.out.println("============= END =============");
+					}
+//					String s = m_In.readLine();
+//					System.out.println(s);
+					
 
-					hTTPRequest = "";
-					httpRequest.clear();
-					m_IsHTTPRequestReady = false;
-					outToClient.flush();
-					System.out.println("============= END =============");
-
-
-
+					
 				}
 			}
 		} catch (Exception e){
@@ -152,15 +168,23 @@ public class ConnectionRunnable implements Runnable{
 				// error in closing streams
 				System.out.println(e.getMessage());
 			}
-		}
-	}
 
+		}
+
+
+	}
+public boolean flag = false;
 	private String buildHTTPRequest(String hTTPRequest, String i_String) throws UnsupportedEncodingException{
 		if (i_String.equals("\r\n")){
 			m_IsHTTPRequestReady = true;
+//			if (flag){
+//			System.out.println("last");
 			return hTTPRequest;
+//			}
+//			flag = true;
 		}
 		hTTPRequest += i_String;
+//		hTTPRequest += System.lineSeparator();
 		return hTTPRequest;
 	}
 
@@ -175,7 +199,7 @@ public class ConnectionRunnable implements Runnable{
 	 */
 	public void communicate(Socket clientSocket){// throws IOException {		
 		this.m_clientSocket = clientSocket;
-
+		
 		synchronized (thread) {
 			//TODO: Delete this only before submitting.
 			//System.out.println("Thread pool: notify thread " + myNum);

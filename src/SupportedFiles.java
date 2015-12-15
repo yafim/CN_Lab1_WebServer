@@ -8,12 +8,12 @@ public enum SupportedFiles {
 	/** Files */
 	html{
 		@Override	
-		public String getContentType(){return "txt/html";}
+		public String getContentType(){return "text/html";}
 	},
 	//TODO: Bonus here... maybe js and txt files?
 	txt{
 		@Override
-		public String getContentType(){return "txt/txt";}
+		public String getContentType(){return "text/txt";}
 	},
 
 	/** Image files supported */
@@ -31,7 +31,7 @@ public enum SupportedFiles {
 	},
 	jpg{
 		@Override	
-		public String getContentType(){return "image/jpg";}
+		public String getContentType(){return "image/jpeg";}
 	},
 
 	/** Favicon*/

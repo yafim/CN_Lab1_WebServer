@@ -10,10 +10,15 @@ public class MyThreadPool {
 	private int threadsNum;
 	private Queue<Socket> waitingClients;
 	
-	public MyThreadPool(int threadsNum) {
+	private String m_Root;
+	private String m_DefaultPage;
+	
+	public MyThreadPool(int threadsNum, String i_Root, String i_DefaultPage) {
 		//Number of threads that will be created in the thread pool
 		this.threadsNum = threadsNum;
 		this.waitingClients = new LinkedList<Socket>();
+		this.m_Root = i_Root;
+		this.m_DefaultPage = i_DefaultPage;
 		initializeThreads();		
 	}
 		
@@ -28,7 +33,7 @@ public class MyThreadPool {
 			//surrounds the thread, that way i can communicate between the thread pool
 			//and manage my threads between being in busy thread list and available 
 			//thread list
-			this.m_availableThreads.add(new MyThread(this));
+			this.m_availableThreads.add(new MyThread(this, m_Root, m_DefaultPage));
 		}			
 	}	
 	

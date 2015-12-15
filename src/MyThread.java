@@ -6,9 +6,9 @@ public class MyThread {
 	private ConnectionRunnable runnable;
 	private MyThreadPool myThreadPool;
 	
-	public MyThread(MyThreadPool myThreadPool) {
+	public MyThread(MyThreadPool myThreadPool, String i_Root, String i_DefaultPage) {
 		this.myThreadPool = myThreadPool;
-		this.runnable = new ConnectionRunnable(this);
+		this.runnable = new ConnectionRunnable(this, i_Root, i_DefaultPage);
 		this.thread = new Thread(this.runnable);
 		//Tell the thread to start running and in case we have no client it will
 		//switch to wait mode on the method run.

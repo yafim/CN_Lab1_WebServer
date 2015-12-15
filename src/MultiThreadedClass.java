@@ -1,17 +1,24 @@
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MultiThreadedClass implements Runnable {
-	protected int serverPort;
+	protected int m_Port;
+	protected String m_Root;
 	protected ServerSocket serverSocket;
 	protected boolean isStopped = false;
 	protected MyThreadPool threadPool;
-
-	public MultiThreadedClass(int port){
-		this.serverPort = port;
+	protected String m_DefaultPage;
+	
+	public MultiThreadedClass(int i_Port, String i_Root, String i_DefaultPage){
+		this.m_Root = i_Root;
+		this.m_Port = i_Port;
+		this.m_DefaultPage = i_DefaultPage;
 	}
 
 	/**
@@ -20,7 +27,7 @@ public class MultiThreadedClass implements Runnable {
 	public void run(){
 		openServerSocket();
 		while(!isStopped){
-			//At the begining no client has connected so the client
+			//At the beginning no client has connected so the client
 			//socket is obviously null
 			Socket clientSocket = null;
 			try {
@@ -51,8 +58,8 @@ public class MultiThreadedClass implements Runnable {
 	 * Creating a thread pool for the 10 threads that will
 	 * handle all clients here and starting the server. 
 	 */
-	public void startTheServer() {
-		threadPool = new MyThreadPool(10);
+	public void startTheServer(int i_MaxThreads) {
+		threadPool = new MyThreadPool(i_MaxThreads, m_Root, m_DefaultPage);
 		new Thread(this).start();
 	}
 
@@ -70,10 +77,9 @@ public class MultiThreadedClass implements Runnable {
 	 */
 	private void openServerSocket() {
 		try {
-			//Port in socket is 8080 
-			this.serverSocket = new ServerSocket(this.serverPort);
+			this.serverSocket = new ServerSocket(this.m_Port);
 		} catch (IOException e) {
-			throw new RuntimeException("Cannot open port 8080", e);
+			throw new RuntimeException("Cannot open port " + m_Port, e);
 		}
 	}
 }

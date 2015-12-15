@@ -8,6 +8,5 @@ public enum HTTPMethod {
 	POST,
 	HTTP,
 	HEAD,
-	TRACE,
-	UNSUPPORTED;
+	TRACE;
 }
