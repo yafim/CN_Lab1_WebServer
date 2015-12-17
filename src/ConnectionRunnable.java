@@ -1,11 +1,9 @@
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,12 +17,16 @@ public class ConnectionRunnable implements Runnable{
 	private boolean m_IsHTTPRequestReady = false;
 	private String m_Root;
 	private String m_DefaultPage;
+	private boolean m_IsChunked = false;
+	
+	private DataOutputStream m_OutToClient;
+	private String m_HTTPRequest;
 
 	//!!!!!REMEBER TO DELETE THIS SOCKET AND READER ITS JUST FOR DEBUGING!!!!!!!
 
 	//	private Socket m_socket;
 	//!!!!!!! debug!!!!!!
-	public HTTPRequest httpRequest;
+	public HTTPRequest m_HttpRequest;
 
 	public ConnectionRunnable(MyThread myThread, String i_Root, String i_DeafultPage) {
 		this.myThread = myThread;
@@ -55,90 +57,90 @@ public class ConnectionRunnable implements Runnable{
 	OutputStream output;
 	private void runTaskForClient() {		
 		try {
-			httpRequest = new HTTPRequest(m_Root, m_DefaultPage);
+			m_HttpRequest = new HTTPRequest(m_Root, m_DefaultPage);
 			input  = m_clientSocket.getInputStream();
 			output = m_clientSocket.getOutputStream();
 
 			BufferedReader m_In = new BufferedReader (new InputStreamReader(input));
-			DataOutputStream outToClient = new DataOutputStream (output);
+			m_OutToClient = new DataOutputStream (output);
 
 
 			//TODO: Yafim decide if you want to delete all this or not
 			String lineToRead = "";
-			String hTTPRequest = "";
+			m_HTTPRequest = "";
 
-			//			int i;
-			StringBuilder response= new StringBuilder();
 			String s = "";
-			boolean f = true;
 			int c;
 
 			while (true){
+				// read file by char
 				while ((c = m_In.read()) != -1 && !m_IsHTTPRequestReady) {
 					s += (char)c;
 					if ((char) c == '\r'){
 						char _c = (char)m_In.read();
 						if (_c == '\n'){
 							s += _c;
-							hTTPRequest = buildHTTPRequest(hTTPRequest, s);
+							m_HTTPRequest = buildHTTPRequest(m_HTTPRequest, s);
 							s = "";
 							break;
 						}
 					}
 				}
-
+				
 				if (m_IsHTTPRequestReady){
 					System.out.println("============= START =============");
 					HashMap<String, Object> hm;
 
-					hm = httpRequest.handleHttpRequest(hTTPRequest);
-
-					if (httpRequest.getHTTPMethod() == HTTPMethod.POST){
-						httpRequest.handlePostVariables(m_In);
-//						hm = httpRequest.updateParams();
-					}
+					hm = m_HttpRequest.handleHttpRequest(m_HTTPRequest, m_IsChunked);
 
 					// TODO: Clean and delete some stuff here.
 					String head = (String)hm.get("HEADER");
 					byte[] html = (byte[]) hm.get("Content");
 					
-					
-					outToClient.writeBytes(head);
+					//TODO: Remove "HEAD:"
+					System.out.println("HEAD: " + head);
+					m_OutToClient.writeBytes(head);
 
+//					if (m_HttpRequest.getVariablesAsBytes() != null){
+					if (m_HttpRequest.isPramsInfoForm()){
+						// get form variables
+						m_HttpRequest.handlePostVariables(m_In);
 
-					if (httpRequest.getVariablesAsBytes() != null){
-						HashMap<String, Object> requestedVariables = httpRequest.getVariablesAsBytes();
+						String htmlParams = "";
+						HashMap<String, Object> requestedVariables = m_HttpRequest.getVariablesAsBytes();
 
 						for (Map.Entry<String,Object> entry : requestedVariables.entrySet()) {
-							String key = entry.getKey() + " : ";
-							byte[] value = entry.getValue().toString().getBytes();							
-							outToClient.writeBytes(key);
-							outToClient.write(value);
+							String key = entry.getKey();
+							String value = entry.getValue().toString();	
+							
+							htmlParams += key + " : <input type=\"text\" value=\"" + 
+							value + "\"> <br>";
 						}
+						
+						m_OutToClient.writeBytes(htmlParams);
+						htmlParams = "";
 					} 
 
-					System.out.println(head);
 					if (html != null){
-						outToClient.write(html);
+						m_OutToClient.write(html);
 						System.out.println(html);
 					}
-
-					hTTPRequest = "";
-					httpRequest.clear();
-					m_IsHTTPRequestReady = false;
-					outToClient.flush();
-					System.out.println("============= END =============");
-
-
+					
+					if (m_IsChunked){
+						// TODO: request localhost:8080/images/pic.mp3 - error
+						m_HttpRequest.readFileByChunk(m_OutToClient);
+					}
+					
+					clearRequestedData();
 
 				}
 			}
 		} catch (Exception e){
 			// General exception with relevant message. There are many 
 			// possible exceptions and we let the server handle them.
-			System.err.println("ERROR! " + e.getMessage());
-		}
-		finally{
+//			System.err.println("ERROR! " + e.getMessage());
+			
+		} finally{
 			try {
 				output.close();
 				input.close();
@@ -155,13 +157,27 @@ public class ConnectionRunnable implements Runnable{
 		}
 	}
 
-	private String buildHTTPRequest(String hTTPRequest, String i_String) throws UnsupportedEncodingException{
+	private String buildHTTPRequest(String hTTPRequest, String i_String) {
+		
+		if (i_String.contains("chunked") && i_String.contains("yes")){
+			m_IsChunked = true;
+		}
 		if (i_String.equals("\r\n")){
 			m_IsHTTPRequestReady = true;
 			return hTTPRequest;
 		}
 		hTTPRequest += i_String;
 		return hTTPRequest;
+	}
+	
+	private void clearRequestedData() throws IOException{
+		m_IsChunked = false;
+		m_HTTPRequest = "";
+		m_HttpRequest.clear();
+		m_IsHTTPRequestReady = false;
+		m_OutToClient.flush();
+		m_OutToClient.close();
+		System.out.println("============= END =============");
 	}
 
 	public boolean isBusy() {

@@ -1,14 +1,10 @@
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.net.Socket;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -36,9 +32,9 @@ public class HTTPRequest {
 
 	// http request variables 
 	private File m_RequestedFileFullPath;
-	private HTTPMethod m_HTTPMethod;
+	private HttpMethod m_HTTPMethod;
 	private String m_HttpVersion;
-
+	
 	/** Response variables */
 	// Requested file
 	private byte[]  m_RequestedFileContent;
@@ -46,19 +42,29 @@ public class HTTPRequest {
 	private String m_FileExtension;
 
 
+
 	/** Read file variables */	
 	private static FileInputStream m_FileInputStream = null;
 	private static HashMap<String, Object> m_FileParmas = null;
 
 	/** Root of the server */
-	private String m_Root; // real 
-	// TODO: SEND DEFAULT PAGE here...
+	private String m_Root;
 	private String m_DefaultPage;
 
 	private boolean m_IsValidRequest = false;
 
 	// Default is 200
 	private String m_ResponseMessage = OK_MSG;
+
+	private boolean m_IsChunked = false;
+	
+	private int m_BytesToRead = 1024;
+	
+	//Date format 
+	private final SimpleDateFormat m_Sdf = 
+			new SimpleDateFormat("EEE, MMM d, yyyy hh:mm:ss a z");
+	private Date m_CurrentTime;
+	
 	/**
 	 * Constructor
 	 */
@@ -102,40 +108,36 @@ public class HTTPRequest {
 
 			getVariables(sVariables);
 			m_RequestedVariablesLength = numberOfBytesToRead;
-//			createResponseHeader();
-//			System.out.println(m_RequestedVariables);
 		} 
 		catch (Exception e) {
 			// Shouldn't get here
 			System.out.println("Problem with reading from buffer");
-			System.out.println(e.getMessage());
+			System.out.println("Error message: " + e.getMessage());
 		}
 	}
 
 	/**
 	 * Handle http request.
-	 * TODO: Send real http request.
 	 * @param i_HTTPRequest
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public HashMap<String, Object> handleHttpRequest(String i_HTTPRequest) throws Exception{
+	public HashMap<String, Object> handleHttpRequest(String i_HTTPRequest, boolean i_IsChunked) throws Exception{
+		m_IsChunked = i_IsChunked;
 		m_HTTPRequest = i_HTTPRequest;
+		
+		// print HTTP request to console
 		System.out.println(m_HTTPRequest);
 
 
-		/** ACTUAL CODE TO KEEP */
 		try{
 			splitHttpRequest(m_HTTPRequest);
 			parseHTTPAdditionalInformation();
-
-
-
+			
 			// Print the request
 			System.out.println(m_SplitHTTPRequest[0]); 
 
 			initHttpRequestParams();
-			//		printHTTPRequestParams(); // debug
-
+			//	printHTTPRequestParams(); // debug
 
 			tryParseVariables();
 		} catch (NoVariablesException nve){
@@ -159,22 +161,30 @@ public class HTTPRequest {
 	 * Split http request into 2 parts: 1. request 2. additional parameters.
 	 * @param i_HTTPRequest
 	 * @throws BadRequestException 
+	 * @throws FileNotFoundException 
 	 */
 	private void splitHttpRequest(String i_HTTPRequest) throws BadRequestException{
 		m_SplitHTTPRequest = i_HTTPRequest.split(System.lineSeparator(), 2);
 		verifyGivenPath(m_SplitHTTPRequest[0]);
-
+		
 	}
 
 	/**
 	 * Checks if the URL that was given is OK and safe to open.
 	 * @throws BadRequestException 
+	 * @throws FileNotFoundException 
 	 */
 	private void verifyGivenPath(String i_Path) throws BadRequestException{
 		m_SplitHTTPRequest[0] = i_Path.replaceAll("\\.\\.", "");
-		if (m_SplitHTTPRequest[0].split(" ").length != 3){
+
+		String[] sSplittedRequest = m_SplitHTTPRequest[0].split(" ");
+		sSplittedRequest[1] = sSplittedRequest[1].split("\\?")[0].replaceAll("(//*)", "/");
+		if (sSplittedRequest.length != 3){
 			throw new BadRequestException();
-		} else {
+		} 
+		else {
+			// TODO: Consider moving this logic to tryParseVariables or updating here the m_RequestedFileFullPath
+			m_SplitHTTPRequest[0] = sSplittedRequest[0] + " " + sSplittedRequest[1] + " " + sSplittedRequest[2];
 			m_IsValidRequest = true;
 		}
 	}
@@ -189,9 +199,8 @@ public class HTTPRequest {
 		try{
 			String fileName = m_RequestedFileFullPath.getName();
 			String[] variables = fileName.split("\\?");
-
+			
 			if (variables.length == 1){
-
 				throw new NoVariablesException("No variables to parse");
 			}
 			else {
@@ -218,7 +227,6 @@ public class HTTPRequest {
 	 * @param i_Variables
 	 */
 	private void getVariables(String i_Variables){
-		// TODO: NEW METHOD
 		String[] s = i_Variables.split("&");
 
 		m_RequestedVariables = new HashMap<String, Object>();
@@ -226,9 +234,6 @@ public class HTTPRequest {
 			m_RequestedVariables = stringToDictionary(str, "=", m_RequestedVariables);
 			m_RequestedVariablesLength += str.length();
 		}
-		// TODO: DELETE
-		//		System.out.println("VARIABLES : " + m_RequestedVariables);
-
 	}
 	private int m_RequestedVariablesLength;
 
@@ -241,18 +246,17 @@ public class HTTPRequest {
 	 * @throws Exception 
 	 */
 	private void initHttpRequestParams() throws Exception{
-		// TODO: Maybe exception?...
+
 		String[] sString = m_SplitHTTPRequest[0].split(" ");
 		try{
 			// get the method
-			m_HTTPMethod = HTTPMethod.valueOf(sString[0]);
+			m_HTTPMethod = HttpMethod.valueOf(sString[0]);
 
 			// get the file
 			boolean defaultPageGiven = (sString[1].equals("/"));
 
 			m_RequestedFileFullPath = (defaultPageGiven) ? new File(m_Root + m_DefaultPage)
 			: new File(m_Root + sString[1]);
-			
 			
 			// get http version
 			m_HttpVersion = sString[2];
@@ -324,18 +328,18 @@ public class HTTPRequest {
 			}
 		}
 		catch(FileNotFoundException fnf){
-			// TODO: Handle exception
+			// If you get here, there must be a problem with the config file.
 			System.err.println(fnf.getMessage()); // debug
 		}
 		catch (IOException ioe){
-			// TODO: Handle exception
+			//Should'nt get here anyway
 			System.err.println(ioe.getMessage()); // debug
 		}
 		finally{
 			try {
 				m_FileInputStream.close();
 			} catch (Exception e) {
-				// TODO: Handle exception
+				System.out.println("Something went wrong...");
 			}
 		}
 		return bFile;
@@ -365,7 +369,7 @@ public class HTTPRequest {
 				//			System.out.println(m_HTTPResponse.get("HEADER"));
 				break;
 			case TRACE:
-				buildResponseMessage(false, false, true);
+				buildResponseMessage(false, true, false);
 				break;
 			}
 		}
@@ -396,21 +400,22 @@ public class HTTPRequest {
 			if (i_PrintFileContent){
 				System.out.println(m_HTTPResponse.get("Content"));
 			}
-			// TODO: END... // 
 
 		} catch (UnsupportedEncodingException e) {
-			// TODO: Handle error... (bad enum was given...)
-
+			// Should'nt get here
+			m_ResponseMessage = ERR_INTERNAL_SRV_ERR;
+			createResponseHeader();
 		} catch(FileNotFoundException fnfe){
-			System.out.println(fnfe.getMessage());
+			m_ResponseMessage = ERR_FILE_NOT_FOUND;
+			createResponseHeader();
 		} catch (NullPointerException npe){
 			throw new Exception(ERR_INTERNAL_SRV_ERR);
 		} catch (ArrayIndexOutOfBoundsException aofe){
-			// TODO: IT COULD BE A FOLDER...
-			//			throw new Exception(ERR_FILE_NOT_FOUND);
-		} catch (FileNotSupportedException fnse){
+			// Should'nt get here
+			System.out.println(aofe.getMessage());
+			System.out.println("Something went wrong...");
+		} catch (FileNotImplementedException fnse){
 			m_ResponseMessage = ERR_NOT_IMPEMENTED;
-
 			createResponseHeader();
 		}
 	}
@@ -427,28 +432,25 @@ public class HTTPRequest {
 	/**
 	 * If file exists and supported by the server open it, 
 	 * Otherwise return 404 message
-	 * TODO: 404 Exception?
 	 * @throws UnsupportedEncodingException 
 	 * @throws FileNotFoundException 
-	 * @throws FileNotSupportedException 
+	 * @throws FileNotImplementedException 
 	 */
-	private void handleFileRequest() throws ArrayIndexOutOfBoundsException, UnsupportedEncodingException, FileNotFoundException, FileNotSupportedException{
-
-		//TODO: Maybe folder options...
+	private void handleFileRequest() throws ArrayIndexOutOfBoundsException, UnsupportedEncodingException, FileNotFoundException, FileNotImplementedException{
 		try{
 			m_FileExtension = m_RequestedFileFullPath.getName().split("\\.")[1];
 		} catch (Exception e){
-			throw new FileNotSupportedException();
+			throw new FileNotFoundException();
 		}
 
-		boolean isImage = false;
 
 		// Check the file
 		if (isSupportedFormat(m_FileExtension)){
-			isImage = isImage(m_FileExtension);
 			if (isExists(m_RequestedFileFullPath)){
 				// open file...
-				m_RequestedFileContent = readFile(m_RequestedFileFullPath);
+				if (!m_IsChunked){
+					m_RequestedFileContent = readFile(m_RequestedFileFullPath);
+				}
 			}
 			else {
 				m_ResponseMessage = ERR_FILE_NOT_FOUND;
@@ -456,16 +458,16 @@ public class HTTPRequest {
 				createResponseHeader();
 			}
 		} else {
-			throw new FileNotSupportedException();
+			throw new FileNotImplementedException();
 		}
 	}
 	/**
 	 * Returns true if file format supported by the server.
 	 * @param i_FileExtension file extension
 	 * @return isSupported
-	 * @throws FileNotSupportedException 
+	 * @throws FileNotImplementedException 
 	 */
-	private boolean isSupportedFormat(String i_FileExtension) throws FileNotSupportedException{
+	private boolean isSupportedFormat(String i_FileExtension) throws FileNotImplementedException{
 		boolean isSupported = false;
 		try{
 			SupportedFiles.valueOf(i_FileExtension);		
@@ -474,28 +476,10 @@ public class HTTPRequest {
 		catch (IllegalArgumentException iae){
 			//			System.err.println(i_FileExtension + " Not supported file");
 			isSupported = false;
-			throw new FileNotSupportedException();
+			throw new FileNotImplementedException();
 		}
 
 		return isSupported;
-	}
-
-	/**
-	 * Return true if file is image, Otherwise false.
-	 * @param i_FileExtension file to check
-	 * @return isImage
-	 */
-	private boolean isImage(String i_FileExtension){
-		boolean isImage = false;
-		try{
-			SupportedFiles.valueOf(i_FileExtension);
-			isImage = true;
-		}
-		catch (IllegalArgumentException iae){
-			isImage = false;
-		}
-
-		return isImage;
 	}
 
 	/**
@@ -523,32 +507,20 @@ public class HTTPRequest {
 		m_HTTPResponse = new HashMap<String, Object>();
 
 		String contentType = getContentType();
-		String contentLength = getContentLength();
-
-		buildResponseHeader(contentType, contentLength);
+		if (!m_IsChunked){
+			String contentLength = getContentLength();
+			buildResponseHeader(contentType, contentLength);
+		}
+		else {
+			buildResponseChunkedHeader(contentType);
+		}
+		
 	}
 
 	/**
 	 * Attach requested content to the http response
 	 */
 	private void buildResponseContent(){
-		//		if (m_RequestedVariables != null){
-		//			m_RequestedFileContent = null;
-		////			m_RequestedFileContent = m_RequestedVariables[0];
-		//			int byteSize = 0;
-		//			
-		//			for (Map.Entry<String,Object> entry : m_RequestedVariables.entrySet()) {
-		//				byte[] key = entry.getKey().getBytes();
-		//				byte[] value = entry.getValue().toString().getBytes();
-		//				byteSize += key.length + value.length;
-		//				m_RequestedFileContent = new byte[byteSize];
-		//				System.arraycopy(key, 0, m_RequestedFileContent, 0, key.length);
-		//				System.arraycopy(value, 0, m_RequestedFileContent, key.length, value.length);
-		//			
-		//			}
-		//			
-		//		}
-
 		m_HTTPResponse.put("Content", m_RequestedFileContent);
 	}
 
@@ -579,30 +551,39 @@ public class HTTPRequest {
 		m_HTTPResponse.put("HEADER", sHeader);
 	}
 	
-	/**
-	 * Get local time stamp
-	 * TODO: Local...
-	 * @return
-	 */
-	private Date getTimestamp(){
-		SimpleDateFormat dateFormatGmt = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss");
-		dateFormatGmt.setTimeZone(TimeZone.getTimeZone("GMT"));
-
-		//Local time zone   
-		SimpleDateFormat dateFormatLocal = new SimpleDateFormat("yyyy-MMM-dd HH:mm:ss");
-
-		//Time in GMT
-		try {
-			return dateFormatLocal.parse( dateFormatGmt.format(new Date()) );
-		} catch (ParseException e) {
-			//TODO: check...
-			e.printStackTrace();
-		}
-		return null;
+	private void buildResponseChunkedHeader(String i_ContentType){
+		String headerResponse = (m_IsValidRequest) ? m_HttpVersion + " " + m_ResponseMessage : 
+		"HTTP/1.1 " + m_ResponseMessage;
+		String sHeader = String.format(
+				"%s\r\nDate: %s\r\nContent-Type: %s\r\nTransfer-Encoding: chunked\r\n\r\n", 
+				headerResponse,
+				getTimestamp(),
+				i_ContentType
+				);
+		
+//		String sHeader = String.format(
+//		"%s\r\nDate: %s\r\nTransfer-Encoding: chunked\r\nContent-Type: %s\r\n", 
+//		headerResponse,
+//		getTimestamp(),
+//		i_ContentType
+//		);
+//		
+		m_HTTPResponse.put("HEADER", sHeader);
 	}
 	
 	/**
-	 * Update params after post method
+	 * Get local time stamp
+	 * @return
+	 */
+	private String getTimestamp(){
+		m_CurrentTime = new Date();
+
+		m_Sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+		return m_Sdf.format(m_CurrentTime);
+	}
+	
+	/**
+	 * Update parameters after post method
 	 * @return
 	 */
 	public HashMap<String, Object> updateParams(){
@@ -620,7 +601,7 @@ public class HTTPRequest {
 			SupportedFiles fileExtension = SupportedFiles.valueOf(m_FileExtension);
 			switch(fileExtension){
 			case html:
-				contentType = (HTTPMethod.TRACE == m_HTTPMethod) ? "message/http" 
+				contentType = (HttpMethod.TRACE == m_HTTPMethod) ? "message/http" 
 						: SupportedFiles.html.getContentType();
 				break;
 			case bmp:
@@ -645,7 +626,6 @@ public class HTTPRequest {
 				break;
 			}
 		} catch (Exception iae){
-			// TODO: Check the url localhost:8080/h
 			contentType = "application/octet-stream";
 		}
 
@@ -677,6 +657,7 @@ public class HTTPRequest {
 
 		m_ResponseMessage = OK_MSG;
 
+		m_IsChunked = false;
 
 
 		/** Read file variables */	
@@ -705,9 +686,61 @@ public class HTTPRequest {
 	}
 
 	/* Some getters and setters */
-	public HTTPMethod getHTTPMethod(){
+	public HttpMethod getHTTPMethod(){
 		return m_HTTPMethod;
 	}
+	
+	/**
+	 * Read file content by chunks
+	 * @param i_FileToRead
+	 */
+	public void readFileByChunk(DataOutputStream outToClient){
+		FileInputStream fis = null;
+		
+		int chunkSize = m_BytesToRead;
+
+		try {
+			fis = new FileInputStream(m_RequestedFileFullPath);
+
+			byte[] buffer = new byte[chunkSize];
+			int bytesRead;
+			
+			String chunk;
+			String hexNumber;
+			
+			while ((bytesRead = fis.read(buffer)) != -1) {			
+				hexNumber = Integer.toHexString(bytesRead);
+				
+				outToClient.write(hexNumber.getBytes());
+				outToClient.writeBytes("\r\n");
+				
+			    chunk = new String(buffer, 0, bytesRead);
+
+				outToClient.write(chunk.getBytes());
+				outToClient.writeBytes("\r\n");
+				buffer = new byte[chunkSize];
+			}
+			outToClient.writeBytes("0");
+			outToClient.writeBytes("\r\n");
+			outToClient.writeBytes("\r\n");
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				fis.close();
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
+		}
+	}
+	
+	
+	/** SOME GETTERS AND SETTERS */
+	public File getRequestedFile(){return m_RequestedFileFullPath;}
+	public int getBytesToRead(){return m_BytesToRead;}
+	// Hard code for params_info.html form.
+	public boolean isPramsInfoForm(){return m_RequestedFileFullPath.getName().equals("params_info.html");}
 
 	/*************************** ---  DELETE  ---**********************************/
 	/**
