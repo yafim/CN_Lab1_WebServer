@@ -40,6 +40,7 @@ public class HTTPRequest {
 	private byte[]  m_RequestedFileContent;
 	private HashMap<String, Object> m_HTTPResponse = null;
 	private String m_FileExtension;
+	private boolean m_IsImage = false;
 
 
 
@@ -309,9 +310,28 @@ public class HTTPRequest {
 	 * @return string
 	 * @throws UnsupportedEncodingException
 	 */
-	private static String byteArrayToString(byte[] i_Bytes) throws UnsupportedEncodingException{
+	public static String byteArrayToString(byte[] i_Bytes) throws UnsupportedEncodingException{
 		return new String(i_Bytes, "UTF-8");
 	}
+	
+	/**
+	 * Return true if file is image, Otherwise false.
+	 * @param i_FileExtension file to check
+	 * @return isImage
+	 */
+	private boolean isImage(String i_FileExtension){
+		boolean isImage = false;
+		try{
+			SupportedFiles.valueOf(i_FileExtension);
+			isImage = true;
+		}
+		catch (IllegalArgumentException iae){
+			isImage = false;
+		}
+
+		return isImage;
+	}
+	
 	/**
 	 * Read bytes from file
 	 * @param i_File file to read
@@ -442,7 +462,8 @@ public class HTTPRequest {
 		} catch (Exception e){
 			throw new FileNotFoundException();
 		}
-
+		
+		m_IsImage = isImage(m_FileExtension);
 
 		// Check the file
 		if (isSupportedFormat(m_FileExtension)){
@@ -454,8 +475,10 @@ public class HTTPRequest {
 			}
 			else {
 				m_ResponseMessage = ERR_FILE_NOT_FOUND;
-				m_RequestedFileContent = ERR_FILE_NOT_FOUND.getBytes();
-				createResponseHeader();
+				if (!m_IsChunked){
+					m_RequestedFileContent = ERR_FILE_NOT_FOUND.getBytes();
+					createResponseHeader();
+				}
 			}
 		} else {
 			throw new FileNotImplementedException();
@@ -528,16 +551,6 @@ public class HTTPRequest {
 	 * Build response header
 	 */
 	private void buildResponseHeader(String i_ContentType, String i_ContentLength){
-
-//		String headerResponse = (m_IsValidRequest) ? m_HttpVersion + " " + m_SplitHTTPRequest[0].split(" ")[1] + " " + m_ResponseMessage : 
-//			"HTTP/1.1 " + m_ResponseMessage;
-//
-//		String sHeader = String.format(
-//				"%s\r\ncontent-type: %s\r\ncontent-length: %s\r\n\r\n", 
-//				headerResponse,
-//				i_ContentType,
-//				i_ContentLength
-//				);
 		String headerResponse = (m_IsValidRequest) ? m_HttpVersion + " " + m_ResponseMessage : 
 		"HTTP/1.1 " + m_ResponseMessage;
 		String sHeader = String.format(
@@ -654,10 +667,9 @@ public class HTTPRequest {
 		m_HTTPResponse.clear();
 		m_HTTPResponse = null;
 		m_FileExtension = "";
-
 		m_ResponseMessage = OK_MSG;
-
 		m_IsChunked = false;
+		m_IsImage = false;
 
 
 		/** Read file variables */	
@@ -689,14 +701,15 @@ public class HTTPRequest {
 	public HttpMethod getHTTPMethod(){
 		return m_HTTPMethod;
 	}
-	
+//	private DataOutputStream m_OutToClient;
 	/**
 	 * Read file content by chunks
 	 * @param i_FileToRead
+	 * @throws Exception 
 	 */
-	public void readFileByChunk(DataOutputStream outToClient){
+	public void readFileByChunk(DataOutputStream outToClient) throws Exception{
 		FileInputStream fis = null;
-		
+//		m_OutToClient = outToClient;
 		int chunkSize = m_BytesToRead;
 
 		try {
@@ -720,11 +733,25 @@ public class HTTPRequest {
 				outToClient.writeBytes("\r\n");
 				buffer = new byte[chunkSize];
 			}
-			outToClient.writeBytes("0");
-			outToClient.writeBytes("\r\n");
-			outToClient.writeBytes("\r\n");
+//			outToClient.writeBytes("0");
+//			outToClient.writeBytes("\r\n");
+//			outToClient.writeBytes("\r\n");
 
-		} catch (IOException e) {
+//		} 
+//		catch (FileNotFoundException fnf){
+//			try {
+////				outToClient.writeBytes("0");
+////				outToClient.writeBytes("\r\n");
+////				outToClient.writeBytes("\r\n");
+//			} catch (IOException e) {
+//				// Problem with sending message to the client.
+//				// Should'nt get here anyway
+//				System.out.println("Something went wrong...");
+//				throw new Exception();
+//			}
+			return;
+		}
+		catch (IOException e) {
 			e.printStackTrace();
 		} finally {
 			try {
@@ -741,7 +768,10 @@ public class HTTPRequest {
 	public int getBytesToRead(){return m_BytesToRead;}
 	// Hard code for params_info.html form.
 	public boolean isPramsInfoForm(){return m_RequestedFileFullPath.getName().equals("params_info.html");}
-
+	public boolean isImage(){return m_IsImage;};
+	public boolean isOK() {return m_ResponseMessage.equals(OK_MSG);}
+	public boolean isNotFound() {return m_ResponseMessage.equals(ERR_FILE_NOT_FOUND);}
+	public String getNotFoundMessage = ERR_FILE_NOT_FOUND;
 	/*************************** ---  DELETE  ---**********************************/
 	/**
 	 * Print dictionary<String, String> - DEBUG ONLY! 

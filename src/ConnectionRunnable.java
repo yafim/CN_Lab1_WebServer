@@ -55,6 +55,7 @@ public class ConnectionRunnable implements Runnable{
 	}
 	InputStream input;
 	OutputStream output;
+	@SuppressWarnings("static-access")
 	private void runTaskForClient() {		
 		try {
 			m_HttpRequest = new HTTPRequest(m_Root, m_DefaultPage);
@@ -64,9 +65,6 @@ public class ConnectionRunnable implements Runnable{
 			BufferedReader m_In = new BufferedReader (new InputStreamReader(input));
 			m_OutToClient = new DataOutputStream (output);
 
-
-			//TODO: Yafim decide if you want to delete all this or not
-			String lineToRead = "";
 			m_HTTPRequest = "";
 
 			String s = "";
@@ -98,7 +96,7 @@ public class ConnectionRunnable implements Runnable{
 					byte[] html = (byte[]) hm.get("Content");
 					
 					//TODO: Remove "HEAD:"
-					System.out.println("HEAD: " + head);
+					System.out.println(head);
 					m_OutToClient.writeBytes(head);
 
 //					if (m_HttpRequest.getVariablesAsBytes() != null){
@@ -123,14 +121,31 @@ public class ConnectionRunnable implements Runnable{
 
 					if (html != null){
 						m_OutToClient.write(html);
-						System.out.println(html);
 					}
 					
+					// TODO: Consider moving this method to HTTPRequest.
 					if (m_IsChunked){
-						// TODO: request localhost:8080/images/pic.mp3 - error
-						m_HttpRequest.readFileByChunk(m_OutToClient);
+						if (m_HttpRequest.isOK()){
+							m_HttpRequest.readFileByChunk(m_OutToClient);
+						}
+						else if (m_HttpRequest.isNotFound()){
+							String fnfMessage = m_HttpRequest.getNotFoundMessage;
+							int iBytesToRead = fnfMessage.length();
+							byte[] b = new byte[iBytesToRead];
+							String hexBytesToRead = Integer.toHexString(iBytesToRead);
+
+							m_OutToClient.writeBytes(hexBytesToRead);
+							m_OutToClient.writeBytes("\r\n");
+							
+							m_OutToClient.writeBytes(fnfMessage.toString());
+							m_OutToClient.writeBytes("\r\n");
+
+						}
+						m_OutToClient.writeBytes("0");
+						m_OutToClient.writeBytes("\r\n");
+						m_OutToClient.writeBytes("\r\n");
 					}
-					
+
 					clearRequestedData();
 
 				}
