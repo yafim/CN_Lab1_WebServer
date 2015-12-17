@@ -693,7 +693,6 @@ public class HTTPRequest {
 			byte[] buffer = new byte[chunkSize];
 			int bytesRead;
 			
-			String chunk;
 			String hexNumber;
 			
 			while ((bytesRead = m_FileInputStream.read(buffer)) != -1) {			
@@ -702,9 +701,7 @@ public class HTTPRequest {
 				outToClient.write(hexNumber.getBytes());
 				outToClient.writeBytes("\r\n");
 				
-			    chunk = new String(buffer, 0, bytesRead);
-
-				outToClient.write(chunk.getBytes());
+			    outToClient.write(buffer, 0, bytesRead);
 				outToClient.writeBytes("\r\n");
 				buffer = new byte[chunkSize];
 			}
