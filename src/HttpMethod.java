@@ -1,12 +1,11 @@
 /**
  * 
- * @author Yafim Vodkov 308973882 Nir Tahan 305181166
+ * @authors Yafim Vodkov 308973882 Nir Tahan 305181166
  *
  */
 public enum HttpMethod {
 	GET,
 	POST,
-	HTTP,
 	HEAD,
 	TRACE;
 }

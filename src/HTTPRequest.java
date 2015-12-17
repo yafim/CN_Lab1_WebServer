@@ -12,9 +12,8 @@ import java.util.Map;
 import java.util.TimeZone;
 
 /**
- * Singleton class holds the necessarily logic to use WebServer program.
- * @author Yafim Vodkov 308973882 , Nir Tahan 305181166
- *
+ * This class holds the necessarily logic to use web server program.
+ * @authors Yafim Vodkov 308973882 , Nir Tahan 305181166
  */
 public class HTTPRequest {
 	/** Errors and messages to the client */
@@ -30,7 +29,7 @@ public class HTTPRequest {
 	private HashMap<String, Object> m_HTTPAdditionalInformation = null;
 	private HashMap<String, Object> m_RequestedVariables = null;
 
-	// http request variables 
+	// HTTP request variables 
 	private File m_RequestedFileFullPath;
 	private HttpMethod m_HTTPMethod;
 	private String m_HttpVersion;
@@ -42,11 +41,10 @@ public class HTTPRequest {
 	private String m_FileExtension;
 	private boolean m_IsImage = false;
 
-
-
 	/** Read file variables */	
 	private static FileInputStream m_FileInputStream = null;
 	private static HashMap<String, Object> m_FileParmas = null;
+	private int m_RequestedVariablesLength;
 
 	/** Root of the server */
 	private String m_Root;
@@ -61,7 +59,7 @@ public class HTTPRequest {
 	
 	private int m_BytesToRead = 1024;
 	
-	//Date format 
+	// Date format 
 	private final SimpleDateFormat m_Sdf = 
 			new SimpleDateFormat("EEE, MMM d, yyyy hh:mm:ss a z");
 	private Date m_CurrentTime;
@@ -118,7 +116,7 @@ public class HTTPRequest {
 	}
 
 	/**
-	 * Handle http request.
+	 * Handle HTTP request.
 	 * @param i_HTTPRequest
 	 * @throws Exception
 	 */
@@ -138,7 +136,6 @@ public class HTTPRequest {
 			System.out.println(m_SplitHTTPRequest[0]); 
 
 			initHttpRequestParams();
-			//	printHTTPRequestParams(); // debug
 
 			tryParseVariables();
 		} catch (NoVariablesException nve){
@@ -147,19 +144,13 @@ public class HTTPRequest {
 			m_ResponseMessage = bre.getMessage();
 			createResponseHeader();
 		}
-		//		if (m_RequestedVariables != null){ //debug!
-		//			printDictionary(m_RequestedVariables);
-		//		}
-		//		printDictionary(m_HTTPAdditionalInformation); // debug
 
 		buildResponseMessage();
 		return m_HTTPResponse;
-
-		// END
 	}
 
 	/**
-	 * Split http request into 2 parts: 1. request 2. additional parameters.
+	 * Split HTTP request into 2 parts: 1. request 2. additional parameters.
 	 * @param i_HTTPRequest
 	 * @throws BadRequestException 
 	 * @throws FileNotFoundException 
@@ -209,7 +200,7 @@ public class HTTPRequest {
 				getVariables(variables[1]);
 			}
 		} catch (Exception e){
-			//			System.out.println(e.getMessage());
+			//TODO: Should'nt get here..? probably. -> Check!
 		}
 
 	}
@@ -236,15 +227,18 @@ public class HTTPRequest {
 			m_RequestedVariablesLength += str.length();
 		}
 	}
-	private int m_RequestedVariablesLength;
 
+	/**
+	 * Return variables as bytes
+	 * @return
+	 */
 	public HashMap<String, Object> getVariablesAsBytes(){
 		return m_RequestedVariables;
 	}
 
 	/**
 	 * Initialise HTTP request variables
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	private void initHttpRequestParams() throws Exception{
 
@@ -259,15 +253,12 @@ public class HTTPRequest {
 			m_RequestedFileFullPath = (defaultPageGiven) ? new File(m_Root + m_DefaultPage)
 			: new File(m_Root + sString[1]);
 			
-			// get http version
+			// get HTTP version
 			m_HttpVersion = sString[2];
-
 		} catch (IllegalArgumentException e){
-			//			throw new Exception(ERR_NOT_IMPEMENTED);
 			m_ResponseMessage = ERR_BAD_REQUEST;
 			createResponseHeader();
 		} catch(ArrayIndexOutOfBoundsException oobe){
-			//			throw new Exception(ERR_BAD_REQUEST);
 			m_ResponseMessage = ERR_BAD_REQUEST;
 			createResponseHeader();
 		} catch(NullPointerException npe){
@@ -373,23 +364,16 @@ public class HTTPRequest {
 		if (m_HTTPMethod != null){
 			switch(m_HTTPMethod){
 			case GET :
-				buildResponseMessage(false, true, false);
+				buildResponseMessage(false, true);
 				break;
 			case POST :
-				buildResponseMessage(false, true, false);
-				break;
-			case HTTP :
-				//			System.out.println("HTTP");
+				buildResponseMessage(false, true);
 				break;
 			case HEAD :
-				buildResponseMessage(false, true, false);
-				//			System.out.println("HEAD");
-				//			handleFileRequest();
-				//			createResponseHeader();
-				//			System.out.println(m_HTTPResponse.get("HEADER"));
+				buildResponseMessage(false, true);
 				break;
 			case TRACE:
-				buildResponseMessage(false, true, false);
+				buildResponseMessage(false, true);
 				break;
 			}
 		}
@@ -404,7 +388,7 @@ public class HTTPRequest {
 	 * @param i_PrintFileContent
 	 * @throws Exception 
 	 */
-	private void buildResponseMessage(boolean i_PrintFileContent, boolean i_IncludeConetnt, boolean i_IncludeHTTPRequest) throws Exception{
+	private void buildResponseMessage(boolean i_PrintFileContent, boolean i_IncludeConetnt) throws Exception{
 		try{
 			handleFileRequest();
 			createResponseHeader();
@@ -412,10 +396,11 @@ public class HTTPRequest {
 			if (i_IncludeConetnt){
 				buildResponseContent();
 			}
-
-			if (i_IncludeHTTPRequest){
-				includeHTTPRequestInResponse();
-			}
+			
+			//TODO: Check...
+//			if (i_IncludeHTTPRequest){
+//				includeHTTPRequestInResponse();
+//			}
 
 			if (i_PrintFileContent){
 				System.out.println(m_HTTPResponse.get("Content"));
@@ -442,6 +427,7 @@ public class HTTPRequest {
 
 	/**
 	 * Usually for TRACE method...
+	 * TODO: Maybe delete..?
 	 */
 	private void includeHTTPRequestInResponse(){
 		String newHeader = m_HTTPResponse.get("HEADER") 
@@ -484,6 +470,7 @@ public class HTTPRequest {
 			throw new FileNotImplementedException();
 		}
 	}
+	
 	/**
 	 * Returns true if file format supported by the server.
 	 * @param i_FileExtension file extension
@@ -497,7 +484,6 @@ public class HTTPRequest {
 			isSupported = true;
 		}
 		catch (IllegalArgumentException iae){
-			//			System.err.println(i_FileExtension + " Not supported file");
 			isSupported = false;
 			throw new FileNotImplementedException();
 		}
@@ -541,7 +527,7 @@ public class HTTPRequest {
 	}
 
 	/**
-	 * Attach requested content to the http response
+	 * Attach requested content to the HTTP response
 	 */
 	private void buildResponseContent(){
 		m_HTTPResponse.put("Content", m_RequestedFileContent);
@@ -553,6 +539,7 @@ public class HTTPRequest {
 	private void buildResponseHeader(String i_ContentType, String i_ContentLength){
 		String headerResponse = (m_IsValidRequest) ? m_HttpVersion + " " + m_ResponseMessage : 
 		"HTTP/1.1 " + m_ResponseMessage;
+		
 		String sHeader = String.format(
 		"%s\r\nDate: %s\r\ncontent-type: %s\r\ncontent-length: %s\r\n\r\n", 
 		headerResponse,
@@ -563,7 +550,10 @@ public class HTTPRequest {
 		
 		m_HTTPResponse.put("HEADER", sHeader);
 	}
-	
+	/**
+	 * Build response header for chunk encoding
+	 * @param i_ContentType
+	 */
 	private void buildResponseChunkedHeader(String i_ContentType){
 		String headerResponse = (m_IsValidRequest) ? m_HttpVersion + " " + m_ResponseMessage : 
 		"HTTP/1.1 " + m_ResponseMessage;
@@ -573,19 +563,11 @@ public class HTTPRequest {
 				getTimestamp(),
 				i_ContentType
 				);
-		
-//		String sHeader = String.format(
-//		"%s\r\nDate: %s\r\nTransfer-Encoding: chunked\r\nContent-Type: %s\r\n", 
-//		headerResponse,
-//		getTimestamp(),
-//		i_ContentType
-//		);
-//		
 		m_HTTPResponse.put("HEADER", sHeader);
 	}
 	
 	/**
-	 * Get local time stamp
+	 * Get local GMT time stamp
 	 * @return
 	 */
 	private String getTimestamp(){
@@ -632,8 +614,6 @@ public class HTTPRequest {
 			case ico:
 				contentType = SupportedFiles.ico.getContentType();
 				break;
-
-				// bonus
 			case txt:
 				contentType = SupportedFiles.txt.getContentType();
 				break;
@@ -645,6 +625,9 @@ public class HTTPRequest {
 		return contentType;
 	}
 
+	/**
+	 * Clear all fields
+	 */
 	public void clear(){
 		/** HTTP request variables */
 		m_IsValidRequest = false;
@@ -693,27 +676,19 @@ public class HTTPRequest {
 	private String getContentLength(){
 		int contentLength = (m_RequestedFileContent != null) ? m_RequestedFileContent.length : 0;
 		contentLength += m_RequestedVariablesLength;
-//		System.out.println(contentLength);
 		return contentLength + "";
 	}
 
-	/* Some getters and setters */
-	public HttpMethod getHTTPMethod(){
-		return m_HTTPMethod;
-	}
-//	private DataOutputStream m_OutToClient;
 	/**
 	 * Read file content by chunks
 	 * @param i_FileToRead
 	 * @throws Exception 
 	 */
 	public void readFileByChunk(DataOutputStream outToClient) throws Exception{
-		FileInputStream fis = null;
-//		m_OutToClient = outToClient;
 		int chunkSize = m_BytesToRead;
-
+		m_FileInputStream = null; // just int case..
 		try {
-			fis = new FileInputStream(m_RequestedFileFullPath);
+			m_FileInputStream = new FileInputStream(m_RequestedFileFullPath);
 
 			byte[] buffer = new byte[chunkSize];
 			int bytesRead;
@@ -721,7 +696,7 @@ public class HTTPRequest {
 			String chunk;
 			String hexNumber;
 			
-			while ((bytesRead = fis.read(buffer)) != -1) {			
+			while ((bytesRead = m_FileInputStream.read(buffer)) != -1) {			
 				hexNumber = Integer.toHexString(bytesRead);
 				
 				outToClient.write(hexNumber.getBytes());
@@ -733,37 +708,21 @@ public class HTTPRequest {
 				outToClient.writeBytes("\r\n");
 				buffer = new byte[chunkSize];
 			}
-//			outToClient.writeBytes("0");
-//			outToClient.writeBytes("\r\n");
-//			outToClient.writeBytes("\r\n");
-
-//		} 
-//		catch (FileNotFoundException fnf){
-//			try {
-////				outToClient.writeBytes("0");
-////				outToClient.writeBytes("\r\n");
-////				outToClient.writeBytes("\r\n");
-//			} catch (IOException e) {
-//				// Problem with sending message to the client.
-//				// Should'nt get here anyway
-//				System.out.println("Something went wrong...");
-//				throw new Exception();
-//			}
 			return;
 		}
 		catch (IOException e) {
 			e.printStackTrace();
 		} finally {
 			try {
-				fis.close();
+				m_FileInputStream.close();
 			} catch (IOException ex) {
 				ex.printStackTrace();
 			}
 		}
 	}
 	
-	
 	/** SOME GETTERS AND SETTERS */
+	
 	public File getRequestedFile(){return m_RequestedFileFullPath;}
 	public int getBytesToRead(){return m_BytesToRead;}
 	// Hard code for params_info.html form.
@@ -772,6 +731,7 @@ public class HTTPRequest {
 	public boolean isOK() {return m_ResponseMessage.equals(OK_MSG);}
 	public boolean isNotFound() {return m_ResponseMessage.equals(ERR_FILE_NOT_FOUND);}
 	public String getNotFoundMessage = ERR_FILE_NOT_FOUND;
+	
 	/*************************** ---  DELETE  ---**********************************/
 	/**
 	 * Print dictionary<String, String> - DEBUG ONLY! 

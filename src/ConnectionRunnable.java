@@ -99,7 +99,6 @@ public class ConnectionRunnable implements Runnable{
 					System.out.println(head);
 					m_OutToClient.writeBytes(head);
 
-//					if (m_HttpRequest.getVariablesAsBytes() != null){
 					if (m_HttpRequest.isPramsInfoForm()){
 						// get form variables
 						m_HttpRequest.handlePostVariables(m_In);
