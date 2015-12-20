@@ -10,7 +10,10 @@ public enum SupportedFiles {
 		@Override	
 		public String getContentType(){return "text/html";}
 	},
-
+	txt{
+		@Override
+		public String getContentType(){return "text/txt";}
+	},
 	/** Image files supported */
 	bmp{
 		@Override	
