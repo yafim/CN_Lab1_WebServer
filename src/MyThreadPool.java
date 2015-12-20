@@ -72,6 +72,8 @@ public class MyThreadPool {
 	}
 
 	//Bonus feature for shutting down the server in case we want to.
+	//I have implemented this for bonus and for future use if we want to 
+	//Some how insert shutting down 
 	public void shutdown() {
 		synchronized (m_availableThreads) {
 			for (MyThread thread : m_availableThreads) {
@@ -97,23 +99,16 @@ public class MyThreadPool {
 		synchronized (waitingClients) {
 			if(!waitingClients.isEmpty()) {			
 				myThread.execute(waitingClients.poll());
-				//TODO:Client Message for debuggin, delete only when about the submit the project
-				//System.out.println("Status: waitingClients - " + waitingClients.size() + ", busyThreads: " + m_busyThreads.size()+ ", availableThreads: " + m_availableThreads.size());
 				return;
 			}
-			
 			//No client is waiting so the thread is removed from busy thread list
 			synchronized (m_busyThreads) {
 				m_busyThreads.remove(myThread);
 			}
-			
 			//The thread is added to the available thread list
 			synchronized (m_availableThreads) {
 				m_availableThreads.add(myThread);
 			}
-			//TODO:Client Message for debuggin, delete only when about the submit the project
-			//System.out.println("Status: waitingClients - " + waitingClients.size() + ", busyThreads: " + m_busyThreads.size()+ ", availableThreads: " + m_availableThreads.size());
-			
 			//Telling the thread to be on wait mode until we will call him.
 			myThread.waitForClient();
 		}

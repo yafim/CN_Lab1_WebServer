@@ -21,11 +21,6 @@ public class ConnectionRunnable implements Runnable{
 	
 	private DataOutputStream m_OutToClient;
 	private String m_HTTPRequest;
-
-	//!!!!!REMEBER TO DELETE THIS SOCKET AND READER ITS JUST FOR DEBUGING!!!!!!!
-
-	//	private Socket m_socket;
-	//!!!!!!! debug!!!!!!
 	public HTTPRequest m_HttpRequest;
 
 	public ConnectionRunnable(MyThread myThread, String i_Root, String i_DeafultPage) {
@@ -139,7 +134,6 @@ public class ConnectionRunnable implements Runnable{
 		} catch (Exception e){
 			// General exception with relevant message. There are many 
 			// possible exceptions and we let the server handle them.
-//			System.err.println("ERROR! " + e.getMessage());
 			
 		} finally{
 			try {
@@ -148,9 +142,6 @@ public class ConnectionRunnable implements Runnable{
 
 				//Finish handling client
 				myThread.onClientCommComplete();
-				// TODO: DELETE 
-				System.out.println("FINISH");
-				System.out.println("close!");
 			} catch (Exception e) {
 				// error in closing streams
 				System.out.println(e.getMessage());
@@ -194,8 +185,6 @@ public class ConnectionRunnable implements Runnable{
 		this.m_clientSocket = clientSocket;
 
 		synchronized (thread) {
-			//TODO: Delete this only before submitting.
-			//System.out.println("Thread pool: notify thread " + myNum);
 			thread.notify();
 		}
 	}
