@@ -15,9 +15,7 @@ import java.util.TimeZone;
  * This class holds the necessarily logic to use web server program.
  * @authors Yafim Vodkov 308973882 , Nir Tahan 305181166
  */
-public class HTTPRequest {
-	private String m_HTMLParams;
-	private BufferedReader m_In;
+public class CopyOfHTTPRequest {
 	/** Errors and messages to the client */
 	private final String ERR_NOT_IMPEMENTED = "501 Not Implemented";
 	private final String ERR_FILE_NOT_FOUND = "404 Not Found";
@@ -69,7 +67,7 @@ public class HTTPRequest {
 	/**
 	 * Constructor
 	 */
-	public HTTPRequest(String i_Root, String i_DefaultPage){
+	public CopyOfHTTPRequest(String i_Root, String i_DefaultPage){
 		// Add '\' in case there isn't
 		this.m_Root = (i_Root + "\\"); 
 		this.m_DefaultPage = i_DefaultPage;
@@ -95,32 +93,29 @@ public class HTTPRequest {
 	public void handlePostVariables(BufferedReader i_In){
 		int c;
 		int i;
-		boolean skip = false;
 		String sVariables = "";
-		String sNumberOfBytesToRead = "";
-		try{
-			sNumberOfBytesToRead = m_HTTPAdditionalInformation.get("Content-Length").toString().replaceAll("\\s+","");
-		} catch (NullPointerException npe){
-			// No params was given
-			skip = true;
-			sVariables = "";
-			sNumberOfBytesToRead = "0";
-		}
-
-		int numberOfBytesToRead = Integer.parseInt(sNumberOfBytesToRead);
+		int numberOfBytesToRead;
 		
-
+		if (m_IsChunked){
+			String sNumberOfBytesToRead = m_HTTPAdditionalInformation.get("Content-Length").toString().replaceAll("\\s+","");
+			numberOfBytesToRead = Integer.parseInt(sNumberOfBytesToRead);
+		}
+		else {
+			numberOfBytesToRead = m_BytesToRead;
+			System.out.println("here");
+		}
+		
 		try {
 			// read numberOfBytes from the current buffer
-			for (i = numberOfBytesToRead; i > 0 && !skip ; i--){
+			for (i = numberOfBytesToRead; i > 0 || i_In.read() != 0; i--){
+				
 				c = i_In.read();
 				sVariables += (char)c;
 			}
 
 			getVariables(sVariables);
-
+			m_RequestedVariablesLength = numberOfBytesToRead;
 		} 
-		
 		catch (Exception e) {
 			// Shouldn't get here
 			System.out.println("Problem with reading from buffer");
@@ -133,10 +128,10 @@ public class HTTPRequest {
 	 * @param i_HTTPRequest
 	 * @throws Exception
 	 */
-	public HashMap<String, Object> handleHttpRequest(String i_HTTPRequest, boolean i_IsChunked, BufferedReader i_In) throws Exception{
+	public HashMap<String, Object> handleHttpRequest(String i_HTTPRequest, boolean i_IsChunked) throws Exception{
 		m_IsChunked = i_IsChunked;
 		m_HTTPRequest = i_HTTPRequest;
-		m_In = i_In;
+		
 		// print HTTP request to console
 		System.out.println(m_HTTPRequest);
 
@@ -151,37 +146,15 @@ public class HTTPRequest {
 			initHttpRequestParams();
 
 			tryParseVariables();
-			
 		} catch (NoVariablesException nve){
 			// No variables to parse...
 		} catch (BadRequestException bre){
 			m_ResponseMessage = bre.getMessage();
 			createResponseHeader();
 		}
-		
-		if (isPramsInfoForm()){
-			parseInfoFormParams();
-		}
+
 		buildResponseMessage();
 		return m_HTTPResponse;
-	}
-	
-	private void parseInfoFormParams(){
-			// get form variables
-			handlePostVariables(m_In);
-
-			String htmlParams = "";
-			HashMap<String, Object> requestedVariables = getVariablesAsBytes();
-
-			for (Map.Entry<String,Object> entry : requestedVariables.entrySet()) {
-				String key = entry.getKey();
-				String value = entry.getValue().toString();	
-				
-				htmlParams += key + " : <input type=\"text\" value=\"" + 
-				value + "\"> <br>";
-			}
-				m_RequestedVariablesLength = htmlParams.length();
-				m_HTMLParams = htmlParams;
 	}
 
 	/**
@@ -433,6 +406,11 @@ public class HTTPRequest {
 			if (i_IncludeConetnt){
 				buildResponseContent();
 			}
+			
+			//TODO: Check...
+//			if (i_IncludeHTTPRequest){
+//				includeHTTPRequestInResponse();
+//			}
 
 			if (i_PrintFileContent){
 				System.out.println(m_HTTPResponse.get("Content"));
@@ -455,6 +433,16 @@ public class HTTPRequest {
 			m_ResponseMessage = ERR_NOT_IMPEMENTED;
 			createResponseHeader();
 		}
+	}
+
+	/**
+	 * Usually for TRACE method...
+	 * TODO: Maybe delete..?
+	 */
+	private void includeHTTPRequestInResponse(){
+		String newHeader = m_HTTPResponse.get("HEADER") 
+				+ m_HTTPRequest;
+		m_HTTPResponse.put("HEADER" , newHeader);
 	}
 
 	/**
@@ -688,8 +676,6 @@ public class HTTPRequest {
 		}
 
 		m_RequestedVariablesLength = 0;
-		m_HTMLParams = "";
-		m_In = null;
 
 	}
 
@@ -752,7 +738,6 @@ public class HTTPRequest {
 	public boolean isOK() {return m_ResponseMessage.equals(OK_MSG);}
 	public boolean isNotFound() {return m_ResponseMessage.equals(ERR_FILE_NOT_FOUND);}
 	public String getNotFoundMessage = ERR_FILE_NOT_FOUND;
-	public String getHTMLParams() {return m_HTMLParams;}
 	
 	/*************************** ---  DELETE  ---**********************************/
 	/**

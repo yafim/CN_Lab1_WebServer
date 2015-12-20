@@ -55,7 +55,6 @@ public class ConnectionRunnable implements Runnable{
 	}
 	InputStream input;
 	OutputStream output;
-	@SuppressWarnings("static-access")
 	private void runTaskForClient() {		
 		try {
 			m_HttpRequest = new HTTPRequest(m_Root, m_DefaultPage);
@@ -89,7 +88,7 @@ public class ConnectionRunnable implements Runnable{
 					System.out.println("============= START =============");
 					HashMap<String, Object> hm;
 
-					hm = m_HttpRequest.handleHttpRequest(m_HTTPRequest, m_IsChunked);
+					hm = m_HttpRequest.handleHttpRequest(m_HTTPRequest, m_IsChunked, m_In);
 
 					// TODO: Clean and delete some stuff here.
 					String head = (String)hm.get("HEADER");
@@ -99,33 +98,21 @@ public class ConnectionRunnable implements Runnable{
 					System.out.println(head);
 					m_OutToClient.writeBytes(head);
 
-					if (m_HttpRequest.isPramsInfoForm()){
-						// get form variables
-						m_HttpRequest.handlePostVariables(m_In);
-
-						String htmlParams = "";
-						HashMap<String, Object> requestedVariables = m_HttpRequest.getVariablesAsBytes();
-
-						for (Map.Entry<String,Object> entry : requestedVariables.entrySet()) {
-							String key = entry.getKey();
-							String value = entry.getValue().toString();	
-							
-							htmlParams += key + " : <input type=\"text\" value=\"" + 
-							value + "\"> <br>";
-						}
-						
-						m_OutToClient.writeBytes(htmlParams);
-						htmlParams = "";
-					} 
-
 					if (html != null){
 						m_OutToClient.write(html);
+					}
+					//TODO: Write params as chunked..
+					if (m_HttpRequest.getHTMLParams() != null){
+						if (m_IsChunked){
+							m_OutToClient.writeBytes(Integer.toHexString(m_HttpRequest.getHTMLParams().length()));
+						}
+						m_OutToClient.writeBytes(m_HttpRequest.getHTMLParams());
 					}
 					
 					// TODO: Consider moving this method to HTTPRequest.
 					if (m_IsChunked){
 						if (m_HttpRequest.isOK()){
-							m_HttpRequest.readFileByChunk(m_OutToClient);
+							m_HttpRequest.readFileByChunks(m_OutToClient);
 						}
 						else if (m_HttpRequest.isNotFound()){
 							String fnfMessage = m_HttpRequest.getNotFoundMessage;
